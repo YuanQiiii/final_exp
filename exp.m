@@ -78,6 +78,7 @@ try
     sameKey = KbName('f'); % 例如，“相同”按键
     differentKey = KbName('j'); % 例如，“不同”按键
     escapeKey = KbName('ESCAPE');
+    DisableKeysForKbCheck(133); % 笔记本卡键解决,请提前运行test脚本确定卡住的按键
 
     % --- 设置屏幕及变量 ---
     [window, windowRect] = PsychImaging('OpenWindow', screenNumber, backgroundColorRGB); % 打开窗口
