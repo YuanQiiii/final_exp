@@ -29,7 +29,7 @@ try
 
     % 视角控制的注视点和字体参数
     fixationCrossSize_deg = 0.6; % 注视点大小（度）
-    instructionFontSize_deg = 1.0; % 指导语字体大小（度）
+    instructionFontSize_deg = 0.5; % 指导语字体大小（度）
 
     % 刺激参数
     numItems = 6; % 固定为6个项目 [cite: 1]
@@ -51,6 +51,7 @@ try
         };
     backgroundColorRGB = [128, 128, 128]; % 中性灰背景 [cite: 1]
     borderColorRGB = [0,0,0]; % 黑色边框 [cite: 1]
+    gridLineColorRGB = [100, 100, 100]; % 灰色网格线，不太显眼
 
     % 布局参数
     % 邻近分组
@@ -99,7 +100,8 @@ try
 
     % 定义项目放置的整体边界框（居中）
     displayRect = CenterRectOnPointd([0 0 totalDisplayArea_px totalDisplayArea_px], xCenter, yCenter);
-
+    % 限制终端读取字符
+    ListenChar(2);
     % 隐藏鼠标指针
     HideCursor(screenNumber);
 
@@ -131,9 +133,26 @@ try
     end
 
     % --- 指导语与练习 ---
-    ShowInstructions(window, '欢迎参加实验！按任意键开始练习。');
-    RunPracticeTrials(window, 20, ifi, fixationDuration, memoryArrayDuration, retentionIntervalDuration, responseWindowDuration, interTrialInterval, itemDiameter_px, colorsRGB, itemShapes, numShapesEach, numItems, sameKey, differentKey, escapeKey, backgroundColorRGB, borderColorRGB, itemBorderPx, displayRect, itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random, groupMaxDistance_px, interGroupMinDistance_px, cell_px, gridSize); % (20-30个练习试次) [cite: 1]
-    ShowInstructions(window, '练习结束。按任意键开始正式实验。');
+    instructionText_Welcome = ['欢迎您参加本次实验！\n\n'...
+        '在本实验中，您将看到一系列由彩色图形组成的记忆图案。您的任务是尽可能准确地记住屏幕上呈现的所有彩色图形的【颜色及其位置】。\n\n' ...
+        '短暂的记忆时间后，屏幕上会单独呈现一个图形，这个图形来自于刚才记忆图案中的某个位置。\n'...
+        '您需要判断这个单独呈现的图形的【颜色】是否与它在原始记忆图案中对应位置的图形颜色【相同】。\n\n' ...
+        '如果颜色相同，请按键盘上的【F】键；如果颜色不同，请按键盘上的【J】键。\n' ...
+        '请您在保证准确的前提下，尽可能快速地做出反应。\n\n' ...
+        '实验包含练习和正式两个阶段。练习阶段可以帮助您熟悉任务流程。\n' ...
+        '如果您有任何疑问，请现在向实验员提出。\n\n' ...
+        '准备好后，请按任意键开始【练习】。'];
+    ShowInstructions(window, instructionText_Welcome, instructionFontSize_px);
+    RunPracticeTrials(window, 20, ifi, fixationDuration, memoryArrayDuration, retentionIntervalDuration, responseWindowDuration, interTrialInterval, itemDiameter_px, colorsRGB, itemShapes, numShapesEach, numItems, sameKey, differentKey, escapeKey, backgroundColorRGB, borderColorRGB, itemBorderPx, displayRect, itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random, groupMaxDistance_px, interGroupMinDistance_px, cell_px, gridSize, instructionFontSize_px, fixationCrossSize_px, xCenter, yCenter, gridLineColorRGB); % (20-30个练习试次)
+
+    instructionText_FormalStart = ['练习结束。\n\n' ...
+        '接下来将开始正式实验。正式实验的流程与练习相同，\n' ...
+        '但【不会再有正确或错误的反馈】。\n\n' ...
+        '请集中注意力，仍然是尽可能准确地记住颜色和位置，\n' ...
+        '并对探测项目的颜色做出"相同"或"不同"的判断。\n' ...
+        '反应同样要求【快而准】。\n\n' ...
+        '如果您准备好了，请按任意键开始正式实验。'];
+    ShowInstructions(window, instructionText_FormalStart, instructionFontSize_px);
 
     % --- 正式实验循环 ---
     trialCounter = 0;
@@ -142,7 +161,7 @@ try
     trialOrder = conditions(randperm(length(conditions))); % 随机化试次顺序
 
     for block = 1:numBlocks
-        ShowInstructions(window, ['第 ' num2str(block) ' 部分，共 ' num2str(numBlocks) ' 部分。按任意键开始。']);
+        ShowInstructions(window, ['第 ' num2str(block) ' 部分，共 ' num2str(numBlocks) ' 部分。按任意键开始。'], instructionFontSize_px);
 
         for trialInBlock = 1:trialsPerBlock
             trialCounter = trialCounter + 1;
@@ -154,7 +173,7 @@ try
             WaitSecs(interTrialInterval);
 
             % 2. 注视点
-            DrawFixationCross(window, xCenter, yCenter, fixationCrossSize_px, [0 0 0], 2);
+            DrawFixationCross(window, xCenter, yCenter, fixationCrossSize_px, [255 255 255], 2);
             Screen('Flip', window);
             WaitSecs(fixationDuration);
 
@@ -167,13 +186,42 @@ try
             trialColors = colorsRGB(trialColorsIndices);
 
             if strcmp(currentCondition, 'NeighborGrouping')
-                itemPositions = GenerateNeighborGroupLayout(numItems, itemDiameter_px, displayRect, groupMaxDistance_px, interGroupMinDistance_px, cell_px, gridSize);
+                itemPositions = GenerateNeighborGroupLayout(numItems, itemDiameter_px, displayRect, groupMaxDistance_px, interGroupMinDistance_px, cell_px, gridSize, xCenter, yCenter, fixationCrossSize_px);
+                % 如果邻近布局失败，尝试使用随机布局作为后备
+                if isempty(itemPositions)
+                    disp('正式试次：邻近分组布局失败，切换到随机布局');
+                    itemPositions = GenerateRandomLayout(numItems, itemDiameter_px, displayRect, itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random, cell_px, gridSize, xCenter, yCenter, fixationCrossSize_px);
+                end
             else % RandomControl
-                itemPositions = GenerateRandomLayout(numItems, itemDiameter_px, displayRect, itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random, cell_px, gridSize);
+                itemPositions = GenerateRandomLayout(numItems, itemDiameter_px, displayRect, itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random, cell_px, gridSize, xCenter, yCenter, fixationCrossSize_px);
+            end
+
+            % 检查最终布局是否仍为空
+            if isempty(itemPositions)
+                disp(['正式试次 ' num2str(trialCounter) '：无法生成有效布局，跳过此试次']);
+                % 可以选择跳过此试次，或用非常简单的备用布局（例如均匀网格）
+                % 这里我使用一个简单的网格布局作为最后的备选
+                itemPositions = zeros(numItems, 2);
+                gridRows = ceil(sqrt(numItems));
+                gridCols = ceil(numItems / gridRows);
+                spacing = totalDisplayArea_px / max(gridRows, gridCols);
+                item = 1;
+                for row = 1:gridRows
+                    for col = 1:gridCols
+                        if item <= numItems
+                            px = displayRect(1) + col * spacing - spacing/2;
+                            py = displayRect(2) + row * spacing - spacing/2;
+                            itemPositions(item,:) = [px, py];
+                            item = item + 1;
+                        end
+                    end
+                end
             end
 
             % 绘制记忆阵列
             Screen('FillRect', window, backgroundColorRGB);
+            % 先绘制网格
+            DrawGrid(window, gridSize, cell_px, xCenter, yCenter, gridLineColorRGB);
             for i = 1:numItems
                 rect = CenterRectOnPointd([0 0 itemDiameter_px itemDiameter_px], itemPositions(i,1), itemPositions(i,2));
                 % Fill with color then frame for memory array items
@@ -185,8 +233,8 @@ try
                     Screen('FrameRect', window, borderColorRGB, rect, itemBorderPx);
                 end
             end
-            Screen('Flip', window); % memoryArrayFlipTime not used
-            WaitSecs(memoryArrayDuration - ifi); % 考虑帧间隔进行调整
+            Screen('Flip', window);
+            WaitSecs(memoryArrayDuration - ifi);
 
             % 4. 记忆保持间隔 (空白屏幕) [cite: 1]
             Screen('FillRect', window, backgroundColorRGB);
@@ -217,6 +265,8 @@ try
 
             % 绘制测试阵列 (单个探测项目)
             Screen('FillRect', window, backgroundColorRGB);
+            % 先绘制网格
+            DrawGrid(window, gridSize, cell_px, xCenter, yCenter, gridLineColorRGB);
             rect = CenterRectOnPointd([0 0 itemDiameter_px itemDiameter_px], probePosition(1), probePosition(2));
             if strcmp(originalProbeShape, 'circle')
                 Screen('FillOval', window, probeColor, rect);
@@ -225,7 +275,7 @@ try
                 Screen('FillRect', window, probeColor, rect);
                 Screen('FrameRect', window, borderColorRGB, rect, itemBorderPx);
             end
-            Screen('Flip', window); % testArrayFlipTime not used
+            Screen('Flip', window);
 
             % 6. 收集反应
             responded = false;
@@ -304,7 +354,13 @@ try
     end % 结束block循环
 
     % --- 实验结束 ---
-    ShowInstructions(window, '实验结束！感谢您的参与。');
+    instructionText_End = ['实验已全部完成！\n\n' ...
+        '非常感谢您的参与和耐心配合。\n\n' ...
+        '本实验旨在研究视觉工作记忆中的空间注意分配机制，\n' ...
+        '您的数据将对我们的研究提供宝贵帮助。\n\n' ...
+        '如果您对实验有任何疑问，可以向实验员咨询。\n\n' ...
+        '请休息片刻，实验到此结束。'];
+    ShowInstructions(window, instructionText_End, instructionFontSize_px);
     WaitSecs(3);
 
     % --- 保存最终数据 ---
@@ -364,6 +420,7 @@ catch ME % 错误处理
     end
     rethrow(ME);
 end % 结束 try-catch
+ListenChar(0);
 end % 结束主函数 exp
 
 % --- 辅助函数 ---
@@ -375,44 +432,34 @@ function pixels = visAngToPixels(visAng, dist_cm, screenXpixels, screenWidth_cm)
 % screenXpixels: 屏幕水平分辨率 (像素)
 % screenWidth_cm: 屏幕宽度 (厘米)
 
-% degPerPixel = rad2deg(atan2(screenWidth_cm/2, dist_cm)) / (screenXpixels/2); % Original, can be simplified
-% pixels = visAng / degPerPixel;
-
-% More direct calculation:
-% Screen width in visual angle = 2 * atan( (screenWidth_cm/2) / dist_cm )
-% Pixels per degree = screenXpixels / (2 * rad2deg(atan( (screenWidth_cm/2) / dist_cm )))
-% pixels = visAng * pixelsPerDegree
-
-viewingDistance_px = dist_cm * (screenXpixels / screenWidth_cm); % Viewing distance in terms of horizontal pixels
-pixels = tan(deg2rad(visAng/2)) * 2 * viewingDistance_px;
-% This formula is common but ensure it matches Psychtoolbox's internal calculations if discrepancies arise.
-% A robust way is often to calibrate with a known physical size on screen.
-% For small angles, visAng (in rad) approx tan(visAng), so visAng_rad * viewingDistance_px.
-% visAng_rad = deg2rad(visAng);
-% pixels = visAng_rad * viewingDistance_px; % This is an approximation for small angles.
-
-% Using the provided formula's logic, which seems standard:
 pixelPitch_cm = screenWidth_cm / screenXpixels; % size of a pixel in cm
-size_on_retina_cm = 2 * dist_cm * tan(deg2rad(visAng/2));
-pixels = size_on_retina_cm / pixelPitch_cm;
+size_on_screen_cm = 2 * dist_cm * tan(deg2rad(visAng/2)); % Physical size of the stimulus on the screen
+pixels = round(size_on_screen_cm / pixelPitch_cm); % Round to nearest pixel
 end
 
-function ShowInstructions(window, text)
+function ShowInstructions(window, text, fontSize_px)
 
 Screen('FillRect', window, [128 128 128]); % 灰色背景
-DrawFormattedText(window, double(text), 'center', 'center', [0 0 0]); % 黑色文本
+Screen('TextSize', window, fontSize_px); % 设置字体大小
+DrawFormattedText(window, double(text), 'center', 'center', [255 255 255]); % 白色文本
 Screen('Flip', window);
 KbStrokeWait; % 等待按键
 WaitSecs(0.2); % 消抖
 end
 
-function RunPracticeTrials(window, numPracticeTrials, ifi, fixationDuration, memoryArrayDuration, retentionIntervalDuration, responseWindowDuration, interTrialInterval, itemDiameter_px, colorsRGB, itemShapes, numShapesEach, numItems, sameKey, differentKey, escapeKey, backgroundColorRGB, borderColorRGB, itemBorderPx, displayRect, itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random, groupMaxDistance_px, interGroupMinDistance_px, cell_px, gridSize)
+function RunPracticeTrials(window, numPracticeTrials, ifi, fixationDuration, memoryArrayDuration, retentionIntervalDuration, responseWindowDuration, interTrialInterval, itemDiameter_px, colorsRGB, itemShapes, numShapesEach, numItems, sameKey, differentKey, escapeKey, backgroundColorRGB, borderColorRGB, itemBorderPx, displayRect, itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random, groupMaxDistance_px, interGroupMinDistance_px, cell_px, gridSize, instructionFontSize_px, fixationCrossSize_px, xCenter, yCenter, gridLineColor)
 % 简化的练习试次循环，带反馈
-ShowInstructions(window, '练习试次。按任意键继续。');
+instructionText_PracticeStart = ['现在开始练习。\n\n' ...
+    '练习的目的是帮助您熟悉任务流程和按键操作。\n' ...
+    '练习试次中，每次反应后屏幕会给出【正确】、【错误】或【超时】的反馈。\n' ...
+    '请利用练习机会，尽量理解任务要求。\n\n' ...
+    '按任意键开始第一个练习试次。'];
+ShowInstructions(window, instructionText_PracticeStart, instructionFontSize_px);
 
 practiceConditions = repmat({'NeighborGrouping', 'RandomControl'}, 1, ceil(numPracticeTrials/2));
 practiceOrder = practiceConditions(randperm(length(practiceConditions)));
 practiceOrder = practiceOrder(1:numPracticeTrials); % 确保练习试次数正确
+% [xCenter, yCenter] = RectCenter(Screen('Rect', window)); % 获取屏幕中心坐标，如果未传入则在此获取
 
 for i_prac = 1:numPracticeTrials % Renamed loop variable
     currentCondition = practiceOrder{i_prac};
@@ -421,7 +468,8 @@ for i_prac = 1:numPracticeTrials % Renamed loop variable
     Screen('Flip', window);
     WaitSecs(interTrialInterval / 2); % 练习中ITI可稍短
 
-    DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);
+    % 使用 DrawFixationCross 绘制注视点
+    DrawFixationCross(window, xCenter, yCenter, fixationCrossSize_px, [255 255 255], 2); % 第五个参数2对于圆形注视点是未使用的
     Screen('Flip', window);
     WaitSecs(fixationDuration);
 
@@ -431,13 +479,32 @@ for i_prac = 1:numPracticeTrials % Renamed loop variable
     trialColorsIndices_prac = randperm(length(colorsRGB), numItems);
     trialColors_prac = colorsRGB(trialColorsIndices_prac);
 
+    % 尝试生成布局，并检查返回结果是否为空
     if strcmp(currentCondition, 'NeighborGrouping')
-        itemPositions_prac = GenerateNeighborGroupLayout(numItems, itemDiameter_px, displayRect, groupMaxDistance_px, interGroupMinDistance_px, cell_px, gridSize);
+        itemPositions_prac = GenerateNeighborGroupLayout(numItems, itemDiameter_px, displayRect, groupMaxDistance_px, interGroupMinDistance_px, cell_px, gridSize, xCenter, yCenter, fixationCrossSize_px);
+        % 如果邻近布局失败，尝试使用随机布局作为后备方案
+        if isempty(itemPositions_prac)
+            disp('练习试次：邻近分组布局失败，切换到随机布局');
+            itemPositions_prac = GenerateRandomLayout(numItems, itemDiameter_px, displayRect, itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random, cell_px, gridSize, xCenter, yCenter, fixationCrossSize_px);
+        end
     else
-        itemPositions_prac = GenerateRandomLayout(numItems, itemDiameter_px, displayRect, itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random, cell_px, gridSize);
+        itemPositions_prac = GenerateRandomLayout(numItems, itemDiameter_px, displayRect, itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random, cell_px, gridSize, xCenter, yCenter, fixationCrossSize_px);
+    end
+
+    % 检查生成的布局是否仍然为空（都失败的情况）
+    if isempty(itemPositions_prac)
+        disp(['练习试次 ' num2str(i_prac) '：无法生成有效布局，跳过此试次']);
+        % 显示错误消息并短暂暂停
+        Screen('FillRect', window, backgroundColorRGB);
+        DrawFormattedText(window, double('无法生成有效布局，跳过此试次'), 'center', 'center', [255 0 0]);
+        Screen('Flip', window);
+        WaitSecs(1.5);
+        continue; % 跳过此试次的剩余部分
     end
 
     Screen('FillRect', window, backgroundColorRGB);
+    % 先绘制网格
+    DrawGrid(window, gridSize, cell_px, xCenter, yCenter, gridLineColor);
     for k_item = 1:numItems % Renamed loop variable
         rect = CenterRectOnPointd([0 0 itemDiameter_px itemDiameter_px], itemPositions_prac(k_item,1), itemPositions_prac(k_item,2));
         if strcmp(trialShapes_prac{k_item}, 'circle')
@@ -483,6 +550,8 @@ for i_prac = 1:numPracticeTrials % Renamed loop variable
     end
 
     Screen('FillRect', window, backgroundColorRGB);
+    % 添加网格绘制
+    DrawGrid(window, gridSize, cell_px, xCenter, yCenter, gridLineColor);
     rect = CenterRectOnPointd([0 0 itemDiameter_px itemDiameter_px], probePosition_prac(1), probePosition_prac(2));
     if strcmp(originalProbeShape_prac, 'circle')
         Screen('FillOval', window, probeColor_prac, rect);
@@ -502,7 +571,7 @@ for i_prac = 1:numPracticeTrials % Renamed loop variable
         [keyIsDown_prac, secs_prac, keyCode_prac] = KbCheck;
         if keyIsDown_prac
             if keyCode_prac(escapeKey)
-                ShowInstructions(window, '练习中止。按任意键返回主实验。');
+                ShowInstructions(window, '练习中止。按任意键返回主实验。', instructionFontSize_px);
                 return;
             elseif keyCode_prac(sameKey)
                 responded_prac = true;
@@ -528,70 +597,376 @@ for i_prac = 1:numPracticeTrials % Renamed loop variable
 
     % 显示反馈
     Screen('FillRect', window, backgroundColorRGB);
-    DrawFormattedText(window, double(feedbackText), 'center', 'center', [0 0 0]);
+    DrawFormattedText(window, double(feedbackText), 'center', 'center', [255 255 255]);
     Screen('Flip', window);
     WaitSecs(1.5); % 显示反馈1.5秒
 end
-ShowInstructions(window, '练习结束。按任意键继续。');
+ShowInstructions(window, '练习结束。按任意键继续。', instructionFontSize_px);
 end
 
-% --- 占位符函数 (如果您的代码依赖它们) ---
-function itemPositions = GenerateNeighborGroupLayout(~, itemDiameter_px, displayRect, ~, ~, cell_px, gridSize)
-% 占位符：生成邻近分组布局
-% 实际实现应确保项目在 displayRect 内，并遵循分组和单元格逻辑
-% 这里仅为示例，返回随机位置
-disp('警告: GenerateNeighborGroupLayout 未完全实现，使用随机布局代替。');
-itemPositions = GenerateRandomLayout(6, itemDiameter_px, displayRect, cell_px*2, cell_px, cell_px, gridSize);
-end
+% --- 布局生成函数 ---
 
-function itemPositions = GenerateRandomLayout(numItems, itemDiameter_px, displayRect, itemCenterMinDistance_px, itemEdgeMinDistance_px, ~, ~)
-% 占位符：生成随机布局
-% 实际实现应确保项目在 displayRect 内，并遵循最小距离约束
-disp('警告: GenerateRandomLayout 未完全实现，使用基本随机位置。');
+function itemPositions = GenerateNeighborGroupLayout(numItems, itemDiameter_px, displayRect, groupMaxDistance_px, interGroupMinDistance_px, cell_px, gridSize, xCenter, yCenter, fixationCrossSize_px)
+% GenerateNeighborGroupLayout: Generates item positions with neighbor grouping.
+%
+% Inputs:
+%   numItems: Total number of items (e.g., 6).
+%   itemDiameter_px: Diameter of each item in pixels.
+%   displayRect: [left, top, right, bottom] of the allowed display area.
+%   groupMaxDistance_px: Maximum distance between centers of any two items within a group.
+%   interGroupMinDistance_px: Minimum distance between items of different groups.
+%   cell_px: Cell size in pixels of the grid.
+%   gridSize: Size of the grid (e.g., 6 for a 6x6 grid).
+%   xCenter, yCenter: Center coordinates of the screen/displayRect (for fixation avoidance).
+%   fixationCrossSize_px: Size of the central fixation cross (for exclusion zone).
+%
+% Output:
+%   itemPositions: An N-by-2 matrix of [x, y] coordinates for N items. Returns empty if failed.
+
 itemPositions = zeros(numItems, 2);
-displayRectWidth = RectWidth(displayRect) - itemDiameter_px;
-displayRectHeight = RectHeight(displayRect) - itemDiameter_px;
-displayRectLeft = displayRect(1) + itemDiameter_px/2;
-displayRectTop = displayRect(2) + itemDiameter_px/2;
+maxTotalAttempts = 100;
+fixationRadius = (fixationCrossSize_px / 2) + (itemDiameter_px / 2);
 
-for i_item = 1:numItems
-    placed = false;
-    attempts = 0;
-    while ~placed && attempts < 1000 % 防止无限循环
-        x = displayRectLeft + rand() * displayRectWidth;
-        y = displayRectTop + rand() * displayRectHeight;
-        currentPos = [x, y];
+% 计算网格的尺寸和位置
+gridWidth = gridSize * cell_px;
+gridHeight = gridSize * cell_px;
+gridLeft = xCenter - (gridWidth / 2);
+gridTop = yCenter - (gridHeight / 2);
 
-        if i_item == 1
-            placed = true;
+% 创建网格中心点坐标列表
+gridCenters = zeros(gridSize * gridSize, 2);
+idx = 1;
+for row = 1:gridSize
+    for col = 1:gridSize
+        % 计算格子中心点坐标
+        centerX = gridLeft + ((col - 0.5) * cell_px);
+        centerY = gridTop + ((row - 0.5) * cell_px);
+        gridCenters(idx, :) = [centerX, centerY];
+        idx = idx + 1;
+    end
+end
+
+% 调整组间距离，使布局更容易生成成功
+adjustedInterGroupMinDistance_px = min(interGroupMinDistance_px, groupMaxDistance_px * 0.9);
+adjustedGroupMaxDistance_px = max(groupMaxDistance_px, itemDiameter_px * 2);
+
+for attempt = 1:maxTotalAttempts
+    positions_candidate = zeros(numItems, 2);
+    placed_mask = false(numItems, 1);
+    usedGridPositions = false(length(gridCenters), 1);
+
+    % 决定分组结构 (2组3个，或3组2个，当numItems = 6)
+    if numItems == 6
+        if rand() < 0.5
+            groupSizes = [3, 3];
         else
-            % 检查与先前项目距离 (简化版，仅中心距离)
-            tooClose = false;
-            for j_item = 1:(i_item-1)
-                dist = norm(currentPos - itemPositions(j_item,:));
-                if dist < itemCenterMinDistance_px % 使用 itemCenterMinDistance_px
-                    tooClose = true;
+            groupSizes = [2, 2, 2];
+        end
+    else
+        warning('GenerateNeighborGroupLayout currently optimized for 6 items. Using single group for other counts.');
+        groupSizes = [numItems];
+    end
+
+    numGroups = length(groupSizes);
+    groupItemIndices = cell(1, numGroups);
+    currentItemIdx = 1;
+    for i = 1:numGroups
+        groupItemIndices{i} = currentItemIdx:(currentItemIdx + groupSizes(i) - 1);
+        currentItemIdx = currentItemIdx + groupSizes(i);
+    end
+
+    allGroupsSuccessfullyPlaced = true;
+
+    for g = 1:numGroups
+        currentGroupIndices = groupItemIndices{g};
+        itemsInThisGroup = groupSizes(g);
+        maxGroupPlacementAttempts = 150;
+        groupPlacedThisAttempt = false;
+
+        for groupAttempt = 1:maxGroupPlacementAttempts
+            tempGroupPositions = zeros(itemsInThisGroup, 2);
+            tempUsedGridPositions = usedGridPositions;
+
+            % 放置组中第一个元素 - 随机选择可用的网格点
+            availableFirstPositions = find(~tempUsedGridPositions);
+            if isempty(availableFirstPositions)
+                continue; % 没有可用位置，重试
+            end
+
+            % 随机选择一个可用的网格位置
+            shuffledAvailablePositions = availableFirstPositions(randperm(length(availableFirstPositions)));
+            firstItemPlaced = false;
+
+            for posIdx = 1:length(shuffledAvailablePositions)
+                gridIdx = shuffledAvailablePositions(posIdx);
+                pos = gridCenters(gridIdx, :);
+
+                % 检查是否过于靠近注视点
+                if norm(pos - [xCenter, yCenter]) < fixationRadius
+                    continue;
+                end
+
+                % 检查与已放置组的组间距离
+                tooCloseToOtherGroup = false;
+                for prevItemIdx = 1:numItems
+                    if placed_mask(prevItemIdx)
+                        if norm(pos - positions_candidate(prevItemIdx, :)) < adjustedInterGroupMinDistance_px
+                            tooCloseToOtherGroup = true;
+                            break;
+                        end
+                    end
+                end
+                if tooCloseToOtherGroup
+                    continue;
+                end
+
+                tempGroupPositions(1, :) = pos;
+                tempUsedGridPositions(gridIdx) = true;
+                firstItemPlaced = true;
+                break;
+            end
+
+            if ~firstItemPlaced
+                continue; % 无法放置第一个元素，重试
+            end
+
+            % 放置组中其余元素 - 优先选择邻近的网格点
+            allItemsPlaced = true;
+            for i = 2:itemsInThisGroup
+                itemPlaced = false;
+
+                % 寻找与已放置元素邻近的网格点
+                neighborPositionCandidates = [];
+                for j = 1:(i-1)
+                    alreadyPlacedPos = tempGroupPositions(j, :);
+
+                    % 计算到所有网格中心的距离
+                    for gridIdx = 1:size(gridCenters, 1)
+                        if tempUsedGridPositions(gridIdx)
+                            continue; % 已使用的网格点跳过
+                        end
+
+                        gridPos = gridCenters(gridIdx, :);
+                        dist = norm(gridPos - alreadyPlacedPos);
+
+                        % 只考虑在groupMaxDistance范围内的网格点
+                        if dist <= adjustedGroupMaxDistance_px
+                            neighborPositionCandidates = [neighborPositionCandidates; gridIdx, dist];
+                        end
+                    end
+                end
+
+                if isempty(neighborPositionCandidates)
+                    allItemsPlaced = false;
+                    break;
+                end
+
+                % 按距离排序（优先选择近的）
+                [~, sortIdx] = sort(neighborPositionCandidates(:, 2));
+                sortedCandidates = neighborPositionCandidates(sortIdx, :);
+
+                for candIdx = 1:size(sortedCandidates, 1)
+                    gridIdx = sortedCandidates(candIdx, 1);
+                    pos = gridCenters(gridIdx, :);
+
+                    % 检查是否过于靠近注视点
+                    if norm(pos - [xCenter, yCenter]) < fixationRadius
+                        continue;
+                    end
+
+                    % 检查与其他组的元素的距离
+                    tooCloseToOtherGroup = false;
+                    for prevItemIdx = 1:numItems
+                        if placed_mask(prevItemIdx)
+                            if norm(pos - positions_candidate(prevItemIdx, :)) < adjustedInterGroupMinDistance_px
+                                tooCloseToOtherGroup = true;
+                                break;
+                            end
+                        end
+                    end
+                    if tooCloseToOtherGroup
+                        continue;
+                    end
+
+                    tempGroupPositions(i, :) = pos;
+                    tempUsedGridPositions(gridIdx) = true;
+                    itemPlaced = true;
+                    break;
+                end
+
+                if ~itemPlaced
+                    allItemsPlaced = false;
                     break;
                 end
             end
-            if ~tooClose
-                placed = true;
+
+            if ~allItemsPlaced
+                continue; % 无法放置所有元素，重试
+            end
+
+            % 全部放置成功，检查组内最大距离
+            if itemsInThisGroup > 1
+                maxDistInGroup = 0;
+                for i = 1:itemsInThisGroup
+                    for j = (i+1):itemsInThisGroup
+                        dist = norm(tempGroupPositions(i, :) - tempGroupPositions(j, :));
+                        maxDistInGroup = max(maxDistInGroup, dist);
+                    end
+                end
+
+                if maxDistInGroup > adjustedGroupMaxDistance_px
+                    continue; % 组内距离过大，重试
+                end
+            end
+
+            % 检查完毕，这个组放置成功
+            positions_candidate(currentGroupIndices, :) = tempGroupPositions;
+            placed_mask(currentGroupIndices) = true;
+            usedGridPositions = tempUsedGridPositions;
+            groupPlacedThisAttempt = true;
+            break;
+        end
+
+        if ~groupPlacedThisAttempt
+            allGroupsSuccessfullyPlaced = false;
+            break;
+        end
+    end
+
+    if allGroupsSuccessfullyPlaced
+        itemPositions = positions_candidate;
+        disp('GenerateNeighborGroupLayout: Success on grid.');
+        return;
+    end
+end
+
+warning('GenerateNeighborGroupLayout: Failed to generate a valid layout after %d attempts.', maxTotalAttempts);
+itemPositions = []; % 失败返回空数组
+end
+
+function itemPositions = GenerateRandomLayout(numItems, itemDiameter_px, displayRect, itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random, cell_px, gridSize, xCenter, yCenter, fixationCrossSize_px)
+% GenerateRandomLayout: Generates item positions randomly on a grid.
+%
+% Inputs:
+%   numItems: Total number of items.
+%   itemDiameter_px: Diameter of each item.
+%   displayRect: [left, top, right, bottom] of the allowed display area.
+%   itemCenterMinDistance_px_random: Minimum distance between centers of any two items.
+%   itemEdgeMinDistance_px_random: Minimum distance between edges of any two items.
+%   cell_px: Cell size in pixels of the grid.
+%   gridSize: Size of the grid (e.g., 6 for a 6x6 grid).
+%   xCenter, yCenter: Center coordinates of the screen/displayRect.
+%   fixationCrossSize_px: Size of the central fixation cross.
+%
+% Output:
+%   itemPositions: An N-by-2 matrix of [x, y] coordinates. Returns empty if failed.
+
+itemPositions = zeros(numItems, 2);
+maxTotalAttempts = 100;
+fixationRadius = (fixationCrossSize_px / 2) + (itemDiameter_px / 2);
+
+% 计算网格的尺寸和位置
+gridWidth = gridSize * cell_px;
+gridHeight = gridSize * cell_px;
+gridLeft = xCenter - (gridWidth / 2);
+gridTop = yCenter - (gridHeight / 2);
+
+% 创建网格中心点坐标列表
+gridCenters = zeros(gridSize * gridSize, 2);
+idx = 1;
+for row = 1:gridSize
+    for col = 1:gridSize
+        % 计算格子中心点坐标
+        centerX = gridLeft + ((col - 0.5) * cell_px);
+        centerY = gridTop + ((row - 0.5) * cell_px);
+        gridCenters(idx, :) = [centerX, centerY];
+        idx = idx + 1;
+    end
+end
+
+% 确保最小距离要求
+minReqCenterDist = max(itemCenterMinDistance_px_random, itemEdgeMinDistance_px_random + itemDiameter_px);
+
+for attempt = 1:maxTotalAttempts
+    % 随机打乱网格顺序
+    shuffledGridIndices = randperm(size(gridCenters, 1));
+    positions_candidate = zeros(numItems, 2);
+    usedIndices = [];
+    placed = 0;
+
+    for i = 1:length(shuffledGridIndices)
+        gridIdx = shuffledGridIndices(i);
+        pos = gridCenters(gridIdx, :);
+
+        % 检查是否过于靠近注视点
+        if norm(pos - [xCenter, yCenter]) < fixationRadius
+            continue;
+        end
+
+        % 检查与已放置元素的距离
+        tooClose = false;
+        for j = 1:placed
+            if norm(pos - positions_candidate(j, :)) < minReqCenterDist
+                tooClose = true;
+                break;
             end
         end
-        attempts = attempts + 1;
-    end
-    if ~placed
-        warning('GenerateRandomLayout: 可能无法在约束条件下放置所有项目。');
-        % 如果无法放置，则将其放在一个随机有效位置，忽略某些约束
-        itemPositions(i_item, :) = [displayRectLeft + rand() * displayRectWidth, displayRectTop + rand() * displayRectHeight];
-    else
-        itemPositions(i_item, :) = currentPos;
+
+        if tooClose
+            continue;
+        end
+
+        % 放置成功
+        placed = placed + 1;
+        positions_candidate(placed, :) = pos;
+        usedIndices = [usedIndices, gridIdx];
+
+        % 如果已放置足够数量的元素，则完成
+        if placed == numItems
+            itemPositions = positions_candidate;
+            disp('GenerateRandomLayout: Success on grid.');
+            return;
+        end
     end
 end
+
+warning('GenerateRandomLayout: Failed to generate a valid layout after %d attempts.', maxTotalAttempts);
+itemPositions = []; % 失败返回空数组
 end
+
 
 function DrawFixationCross(window, x, y, size_px, color, ~)
 % 在(x, y)处绘制一个圆形注视点，size_px为直径
 rect = [x - size_px/2, y - size_px/2, x + size_px/2, y + size_px/2];
 Screen('FillOval', window, color, rect);
+end
+
+function DrawGrid(window, gridSize, cell_px, xCenter, yCenter, gridLineColor)
+% 绘制一个可见的网格
+%
+% 输入:
+%   window: 窗口句柄
+%   gridSize: 网格大小 (如 6 表示 6x6 网格)
+%   cell_px: 单元格大小 (像素)
+%   xCenter, yCenter: 屏幕中心坐标
+%   gridLineColor: 网格线颜色 [R G B]
+
+gridWidth = gridSize * cell_px;
+gridHeight = gridSize * cell_px;
+gridLeft = xCenter - (gridWidth / 2);
+gridTop = yCenter - (gridHeight / 2);
+gridRight = gridLeft + gridWidth;
+gridBottom = gridTop + gridHeight;
+
+% 绘制水平网格线
+for row = 0:gridSize
+    yPos = gridTop + (row * cell_px);
+    Screen('DrawLine', window, gridLineColor, gridLeft, yPos, gridRight, yPos, 1);
+end
+
+% 绘制垂直网格线
+for col = 0:gridSize
+    xPos = gridLeft + (col * cell_px);
+    Screen('DrawLine', window, gridLineColor, xPos, gridTop, xPos, gridBottom, 1);
+end
 end
