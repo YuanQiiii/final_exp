@@ -61,9 +61,9 @@ try
     itemCenterMinDistance_deg_random = 2.5; % 项目中心点最小间距 (视角) [cite: 1]
     itemEdgeMinDistance_deg_random = 1.3; % 项目边缘最小间距 (视角) [cite: 1]
     % 虚拟网格
-    gridSize = 6; % 6x6 虚拟网格 [cite: 1]
-    cellSi_deg = 2.0; % 每个单元格尺寸 (视角) [cite: 1]
-    totalDisplayArea_deg = 12.0; % 总显示区域 (视角) [cite: 1]
+    gridSize = 10; % 修改为10x10网格，使总显示区域与原来相似
+    cellSi_deg = itemDiameter_deg; % 将网格单元格大小设为与元素相同
+    totalDisplayArea_deg = gridSize * cellSi_deg; % 根据网格大小和单元格大小计算总显示区域
 
     % 试次结构
     numConditions = 2; % 邻近分组, 随机控制 [cite: 1]
@@ -71,7 +71,7 @@ try
     numTotalTrials = numConditions * trialsPerCondition; % 总共120个试次 [cite: 1]
     numBlocks = 2; % 2个实验区块 [cite: 1]
     trialsPerBlock = numTotalTrials / numBlocks; % 每个区块60个试次 [cite: 1]
-    changeTrialPercentage = 0.50; % 50% 的试次为“有变化” [cite: 1]
+    changeTrialPercentage = 0.50; % 50% 的试次为"有变化" [cite: 1]
 
     % 反应按键 (所有被试一致) [cite: 1]
     KbName('UnifyKeyNames'); % 标准化按键名称
