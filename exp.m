@@ -61,7 +61,7 @@ try
     itemCenterMinDistance_deg_random = 2.5; % 项目中心点最小间距 (视角) [cite: 1]
     itemEdgeMinDistance_deg_random = 1.3; % 项目边缘最小间距 (视角) [cite: 1]
     % 虚拟网格
-    gridSize = 10; % 修改为10x10网格，使总显示区域与原来相似
+    gridSize = 6; % 修改为6x6网格
     cellSi_deg = itemDiameter_deg; % 将网格单元格大小设为与元素相同
     totalDisplayArea_deg = gridSize * cellSi_deg; % 根据网格大小和单元格大小计算总显示区域
 
