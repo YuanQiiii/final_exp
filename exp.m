@@ -22,7 +22,7 @@ try
 
     % 时间参数 (秒)
     fixationDuration = 0.500; % 注视点呈现时间 [cite: 1]
-    memoryArrayDuration = 0.500; % 记忆阵列呈现时间 [cite: 1]
+    memoryArrayDuration = 1.000; % 记忆阵列呈现时间，从500ms增加到1000ms [cite: Luck & Vogel, 1997; Woodman et al., 2007]
     retentionIntervalDuration = 1.000; % 记忆保持间隔时间 [cite: 1]
     responseWindowDuration = 3.000; % 最大反应时间 [cite: 1]
     interTrialInterval = 0.700; % 试次间隔时间 [cite: 1]
