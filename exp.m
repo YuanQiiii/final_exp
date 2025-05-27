@@ -39,26 +39,7 @@ try
     itemBorderPx = 1; % 1像素黑色边框
 
     % 颜色
-    % colorsRGB = { ... % 8种高区分度颜色
-    %     [255, 0, 0], ...   % Red
-    %     [0, 255, 0], ...   % Green
-    %     [0, 0, 255], ...   % Blue
-    %     [255, 255, 0], ... % Yellow
-    %     [255, 0, 255], ... % Magenta
-    %     [0, 255, 255], ... % Cyan
-    %     [255, 128, 0], ... % Orange
-    %     [128, 0, 255] ...  % Purple
-    %     };
-    colorsRGB = { ... % 8种高区分度颜色
-        [0, 255, 0], ...
-        [0, 255, 0], ...   % Green
-        [0, 255, 0], ...
-        [0, 255, 0], ...
-        [0, 255, 0], ...
-        [0, 255, 0], ...
-        [0, 255, 0], ...
-        [0, 255, 0] ...
-        };
+    colorsRGB = { [0, 255, 0]};
     backgroundColorRGB = [128, 128, 128]; % 中性灰背景
     borderColorRGB = [0,0,0]; % 黑色边框
     gridLineColorRGB = [100, 100, 100]; % 灰色网格线，不太显眼
@@ -131,6 +112,7 @@ try
         'probeItemIndex', NaN, ...
         'probeItemOriginalColorRGB', [], ...
         'probeItemPresentedColorRGB', [], ...
+        'probeItemPresentedShape', '', ... % 新增字段：记录探测项目呈现的形状
         'isChangeTrial', NaN, ...
         'expectedResponseKey', NaN, ...
         'participantResponseKey', NaN, ...
@@ -145,10 +127,10 @@ try
 
     % --- 指导语与练习 ---
     instructionText_Welcome = ['欢迎您参加本次实验！\n\n'...
-        '在本实验中，您将看到一系列由彩色图形组成的记忆图案。您的任务是尽可能准确地记住屏幕上呈现的所有彩色图形的【颜色及其位置】。\n\n' ...
+        '在本实验中，您将看到一系列由图形组成的记忆图案。您的任务是尽可能准确地记住屏幕上呈现的所有图形的【位置和形状】。\n\n' ...
         '短暂的记忆时间后，屏幕上会单独呈现一个图形，这个图形来自于刚才记忆图案中的某个位置。\n'...
-        '您需要判断这个单独呈现的图形的【颜色】是否与它在原始记忆图案中对应位置的图形颜色【相同】。\n\n' ...
-        '如果颜色相同，请按键盘上的【F】键；如果颜色不同，请按键盘上的【J】键。\n' ...
+        '您需要判断这个单独呈现的图形是否与它在原始记忆图案中对应位置的图形【相同】。\n\n' ...
+        '如果形状相同，请按键盘上的【F】键；如果形状不同，请按键盘上的【J】键。\n' ...
         '请您在保证准确的前提下，尽可能快速地做出反应。\n\n' ...
         '实验包含练习和正式两个阶段。练习阶段可以帮助您熟悉任务流程。\n' ...
         '如果您有任何疑问，请现在向实验员提出。\n\n' ...
@@ -159,8 +141,8 @@ try
     instructionText_FormalStart = ['练习结束。\n\n' ...
         '接下来将开始正式实验。正式实验的流程与练习相同，\n' ...
         '但【不会再有正确或错误的反馈】。\n\n' ...
-        '请集中注意力，仍然是尽可能准确地记住颜色和位置，\n' ...
-        '并对探测项目的颜色做出"相同"或"不同"的判断。\n' ...
+        '请集中注意力，仍然是尽可能准确地记住位置和形状，\n' ...
+        '并对探测项目的形状做出"相同"或"不同"的判断。\n' ...
         '反应同样要求【快而准】。\n\n' ...
         '如果您准备好了，请按任意键开始正式实验。'];
     ShowInstructions(window, instructionText_FormalStart, instructionFontSize_px);
@@ -193,8 +175,8 @@ try
             tempShapes = [repmat(itemShapes(1), 1, numShapesEach), repmat(itemShapes(2), 1, numShapesEach)]; % 3个圆形，3个方形
             trialShapes = tempShapes(randperm(length(tempShapes))); % 随机分配形状
 
-            trialColorsIndices = randperm(length(colorsRGB), numItems); % 随机无放回选择6种颜色
-            trialColors = colorsRGB(trialColorsIndices);
+            trialColorsIndices = ones(1, numItems); % 所有项目使用相同颜色索引(1)
+            trialColors = repmat(colorsRGB(1), 1, numItems); % 所有项目使用相同颜色
 
             if strcmp(currentCondition, 'NeighborGrouping')
                 itemPositions = GenerateNeighborGroupLayout(numItems, itemDiameter_px, displayRect, groupMaxDistance_px, interGroupMinDistance_px, cell_px, gridSize, xCenter, yCenter, fixationCrossSize_px);
@@ -255,22 +237,23 @@ try
             % 5. 测试阵列呈现 (单项目探测)
             probeItemIndex = randi(numItems); % 随机选择一个项目进行探测
             probePosition = itemPositions(probeItemIndex,:);
-            originalProbeColor = trialColors{probeItemIndex};
+            originalProbeColor = trialColors{probeItemIndex}; % 保持颜色相同
             originalProbeShape = trialShapes{probeItemIndex};
 
-            isChangeTrial = rand() < changeTrialPercentage; % 决定是否为“变化”试次
+            isChangeTrial = rand() < changeTrialPercentage; % 决定是否为"变化"试次
 
-            if isChangeTrial % “有变化”试次
-                % 选择一个记忆阵列中未出现过的新颜色
-                availableColorsForChangeIndices = setdiff(1:length(colorsRGB), trialColorsIndices);
-                if isempty(availableColorsForChangeIndices)
-                    error('没有足够的不重复颜色用于变化试次！');
+            if isChangeTrial % "有变化"试次
+                % 形状变化：如果原来是圆形则变为方形，反之亦然
+                if strcmp(originalProbeShape, 'circle')
+                    probeShape = 'square';
+                else
+                    probeShape = 'circle';
                 end
-                newColorIndex = availableColorsForChangeIndices(randi(length(availableColorsForChangeIndices)));
-                probeColor = colorsRGB{newColorIndex};
+                probeColor = originalProbeColor; % 颜色保持不变
                 correctResponse = differentKey;
-            else % “无变化”试次
-                probeColor = originalProbeColor;
+            else % "无变化"试次
+                probeShape = originalProbeShape; % 形状保持不变
+                probeColor = originalProbeColor; % 颜色保持不变
                 correctResponse = sameKey;
             end
 
@@ -279,7 +262,7 @@ try
             % 先绘制网格
             DrawGrid(window, gridSize, cell_px, xCenter, yCenter, gridLineColorRGB);
             rect = CenterRectOnPointd([0 0 itemDiameter_px itemDiameter_px], probePosition(1), probePosition(2));
-            if strcmp(originalProbeShape, 'circle')
+            if strcmp(probeShape, 'circle')
                 Screen('FillOval', window, probeColor, rect);
                 Screen('FrameOval', window, borderColorRGB, rect, itemBorderPx);
             else % square
@@ -337,6 +320,7 @@ try
             trialData.probeItemIndex = probeItemIndex; % 记录探测项目在记忆阵列中的索引
             trialData.probeItemOriginalColorRGB = originalProbeColor; % 记录探测项目的原始颜色
             trialData.probeItemPresentedColorRGB = probeColor; % 记录探测项目呈现的颜色
+            trialData.probeItemPresentedShape = probeShape; % 记录探测项目呈现的形状
             trialData.isChangeTrial = isChangeTrial; % 是否为变化试次
             trialData.expectedResponseKey = correctResponse; % 正确反应按键
             trialData.participantResponseKey = keyCodePressed; % 被试反应按键
@@ -367,7 +351,7 @@ try
     % --- 实验结束 ---
     instructionText_End = ['实验已全部完成！\n\n' ...
         '非常感谢您的参与和耐心配合。\n\n' ...
-        '本实验旨在研究视觉工作记忆中的空间注意分配机制，\n' ...
+        '本实验旨在研究视觉工作记忆中的空间组织机制，\n' ...
         '您的数据将对我们的研究提供宝贵帮助。\n\n' ...
         '如果您对实验有任何疑问，可以向实验员咨询。\n\n' ...
         '请休息片刻，实验到此结束。'];
@@ -487,8 +471,8 @@ for i_prac = 1:numPracticeTrials % Renamed loop variable
     tempShapes_prac = [repmat(itemShapes(1), 1, numShapesEach), repmat(itemShapes(2), 1, numShapesEach)];
     trialShapes_prac = tempShapes_prac(randperm(length(tempShapes_prac)));
 
-    trialColorsIndices_prac = randperm(length(colorsRGB), numItems);
-    trialColors_prac = colorsRGB(trialColorsIndices_prac);
+    trialColorsIndices_prac = ones(1, numItems); % 所有项目使用相同颜色索引(1)
+    trialColors_prac = repmat(colorsRGB(1), 1, numItems); % 所有项目使用相同颜色
 
     % 尝试生成布局，并检查返回结果是否为空
     if strcmp(currentCondition, 'NeighborGrouping')
@@ -543,20 +527,17 @@ for i_prac = 1:numPracticeTrials % Renamed loop variable
     % For practice, let's make it simpler: 50% change, 50% no change
     isChangeTrial_prac = rand() < 0.5;
     if isChangeTrial_prac
-        availableColorsForChangeIndices_prac = setdiff(1:length(colorsRGB), trialColorsIndices_prac);
-        if isempty(availableColorsForChangeIndices_prac)
-            % Fallback: pick any color not the original if all were somehow used
-            temp_colors = 1:length(colorsRGB);
-            temp_colors(trialColorsIndices_prac(probeItemIndex_prac)) = []; % remove original
-            if isempty(temp_colors), temp_colors = trialColorsIndices_prac(probeItemIndex_prac); end % Should not happen
-            newColorIndex_prac = temp_colors(randi(length(temp_colors)));
+        % 形状变化：如果原来是圆形则变为方形，反之亦然
+        if strcmp(originalProbeShape_prac, 'circle')
+            probeShape_prac = 'square';
         else
-            newColorIndex_prac = availableColorsForChangeIndices_prac(randi(length(availableColorsForChangeIndices_prac)));
+            probeShape_prac = 'circle';
         end
-        probeColor_prac = colorsRGB{newColorIndex_prac};
+        probeColor_prac = originalProbeColor_prac; % 颜色保持不变
         correctPracticeResponse = differentKey;
     else
-        probeColor_prac = originalProbeColor_prac;
+        probeShape_prac = originalProbeShape_prac; % 形状保持不变
+        probeColor_prac = originalProbeColor_prac; % 颜色保持不变
         correctPracticeResponse = sameKey;
     end
 
