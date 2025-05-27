@@ -10,36 +10,36 @@ try
         return;
     end
     participantID = answer{1};
-    % 此处可添加更多被试信息检查（例如，视力、色盲筛查，尽管这些是筛选标准 [cite: 1]）
+    % 此处可添加更多被试信息检查（例如，视力、色盲筛查，尽管这些是筛选标准 ）
 
     % --- 实验参数 ---
     % 这些参数应从研究方案或配置文件中加载
     % 屏幕参数
     screenNumber = max(Screen('Screens')); % 如果有外接屏幕，则使用外接屏幕
-    viewingDistance_cm = 60; % 观看距离（厘米） [cite: 1]
+    viewingDistance_cm = 60; % 观看距离（厘米）
     displaySize = Screen('DisplaySize', screenNumber); % 返回 [宽, 高]，单位mm
     screenWidth_cm = displaySize(1) / 10; % 转为厘米
 
     % 时间参数 (秒)
-    fixationDuration = 0.500; % 注视点呈现时间 [cite: 1]
-    memoryArrayDuration = 1.000; % 记忆阵列呈现时间，从500ms增加到1000ms [cite: Luck & Vogel, 1997; Woodman et al., 2007]
-    retentionIntervalDuration = 1.000; % 记忆保持间隔时间 [cite: 1]
-    responseWindowDuration = 3.000; % 最大反应时间 [cite: 1]
-    interTrialInterval = 0.700; % 试次间隔时间 [cite: 1]
+    fixationDuration = 0.500; % 注视点呈现时间
+    memoryArrayDuration = 1.000; % 记忆阵列呈现时间，从500ms增加到1000ms
+    retentionIntervalDuration = 1.000; % 记忆保持间隔时间
+    responseWindowDuration = 3.000; % 最大反应时间
+    interTrialInterval = 0.700; % 试次间隔时间
 
     % 视角控制的注视点和字体参数
     fixationCrossSize_deg = 0.6; % 注视点大小（度）
     instructionFontSize_deg = 0.5; % 指导语字体大小（度）
 
     % 刺激参数
-    numItems = 6; % 固定为6个项目 [cite: 1]
-    itemShapes = {'circle', 'square'}; % 两种基本形状：圆形和方形 [cite: 1]
-    numShapesEach = numItems / length(itemShapes); % 每种形状3个 [cite: 1]
-    itemDiameter_deg = 1.2; % 项目直径/边长 (视角单位) [cite: 1]
-    itemBorderPx = 1; % 1像素黑色边框 [cite: 1]
+    numItems = 6; % 固定为6个项目
+    itemShapes = {'circle', 'square'}; % 两种基本形状：圆形和方形
+    numShapesEach = numItems / length(itemShapes); % 每种形状3个
+    itemDiameter_deg = 1.2; % 项目直径/边长 (视角单位)
+    itemBorderPx = 1; % 1像素黑色边框
 
     % 颜色
-    % colorsRGB = { ... % 8种高区分度颜色 [cite: 1]
+    % colorsRGB = { ... % 8种高区分度颜色
     %     [255, 0, 0], ...   % Red
     %     [0, 255, 0], ...   % Green
     %     [0, 0, 255], ...   % Blue
@@ -49,7 +49,7 @@ try
     %     [255, 128, 0], ... % Orange
     %     [128, 0, 255] ...  % Purple
     %     };
-    colorsRGB = { ... % 8种高区分度颜色 [cite: 1]
+    colorsRGB = { ... % 8种高区分度颜色
         [0, 255, 0], ...
         [0, 255, 0], ...   % Green
         [0, 255, 0], ...
@@ -59,31 +59,31 @@ try
         [0, 255, 0], ...
         [0, 255, 0] ...
         };
-    backgroundColorRGB = [128, 128, 128]; % 中性灰背景 [cite: 1]
-    borderColorRGB = [0,0,0]; % 黑色边框 [cite: 1]
+    backgroundColorRGB = [128, 128, 128]; % 中性灰背景
+    borderColorRGB = [0,0,0]; % 黑色边框
     gridLineColorRGB = [100, 100, 100]; % 灰色网格线，不太显眼
 
     % 布局参数
     % 邻近分组
-    groupMaxDistance_deg = 2.8; % 组内元素中心点最大距离 (视角) [cite: 1]
-    interGroupMinDistance_deg = 4.0; % 组间最小距离 (视角) [cite: 1]
+    groupMaxDistance_deg = 2.8; % 组内元素中心点最大距离 (视角)
+    interGroupMinDistance_deg = 4.0; % 组间最小距离 (视角)
     % 随机控制布局
-    itemCenterMinDistance_deg_random = 2.5; % 项目中心点最小间距 (视角) [cite: 1]
-    itemEdgeMinDistance_deg_random = 1.3; % 项目边缘最小间距 (视角) [cite: 1]
+    itemCenterMinDistance_deg_random = 2.5; % 项目中心点最小间距 (视角)
+    itemEdgeMinDistance_deg_random = 1.3; % 项目边缘最小间距 (视角)
     % 虚拟网格
     gridSize = 6; % 修改为6x6网格
     cellSi_deg = itemDiameter_deg; % 将网格单元格大小设为与元素相同
     totalDisplayArea_deg = gridSize * cellSi_deg; % 根据网格大小和单元格大小计算总显示区域
 
     % 试次结构
-    numConditions = 2; % 邻近分组, 随机控制 [cite: 1]
-    trialsPerCondition = 60; % 每个条件60个试次 [cite: 1]
-    numTotalTrials = numConditions * trialsPerCondition; % 总共120个试次 [cite: 1]
-    numBlocks = 2; % 2个实验区块 [cite: 1]
-    trialsPerBlock = numTotalTrials / numBlocks; % 每个区块60个试次 [cite: 1]
-    changeTrialPercentage = 0.50; % 50% 的试次为"有变化" [cite: 1]
+    numConditions = 2; % 邻近分组, 随机控制
+    trialsPerCondition = 60; % 每个条件60个试次
+    numTotalTrials = numConditions * trialsPerCondition; % 总共120个试次
+    numBlocks = 2; % 2个实验区块
+    trialsPerBlock = numTotalTrials / numBlocks; % 每个区块60个试次
+    changeTrialPercentage = 0.50; % 50% 的试次为"有变化"
 
-    % 反应按键 (所有被试一致) [cite: 1]
+    % 反应按键 (所有被试一致)
     KbName('UnifyKeyNames'); % 标准化按键名称
     sameKey = KbName('f'); % 例如，“相同”按键
     differentKey = KbName('j'); % 例如，“不同”按键
@@ -190,10 +190,10 @@ try
 
             % 3. 记忆阵列呈现
             %   A. 决定项目位置、形状和颜色
-            tempShapes = [repmat(itemShapes(1), 1, numShapesEach), repmat(itemShapes(2), 1, numShapesEach)]; % 3个圆形，3个方形 [cite: 1]
+            tempShapes = [repmat(itemShapes(1), 1, numShapesEach), repmat(itemShapes(2), 1, numShapesEach)]; % 3个圆形，3个方形
             trialShapes = tempShapes(randperm(length(tempShapes))); % 随机分配形状
 
-            trialColorsIndices = randperm(length(colorsRGB), numItems); % 随机无放回选择6种颜色 [cite: 1]
+            trialColorsIndices = randperm(length(colorsRGB), numItems); % 随机无放回选择6种颜色
             trialColors = colorsRGB(trialColorsIndices);
 
             if strcmp(currentCondition, 'NeighborGrouping')
@@ -247,21 +247,21 @@ try
             Screen('Flip', window);
             WaitSecs(memoryArrayDuration - ifi);
 
-            % 4. 记忆保持间隔 (空白屏幕) [cite: 1]
+            % 4. 记忆保持间隔 (空白屏幕)
             Screen('FillRect', window, backgroundColorRGB);
             Screen('Flip', window);
             WaitSecs(retentionIntervalDuration);
 
-            % 5. 测试阵列呈现 (单项目探测) [cite: 1]
+            % 5. 测试阵列呈现 (单项目探测)
             probeItemIndex = randi(numItems); % 随机选择一个项目进行探测
             probePosition = itemPositions(probeItemIndex,:);
             originalProbeColor = trialColors{probeItemIndex};
             originalProbeShape = trialShapes{probeItemIndex};
 
-            isChangeTrial = rand() < changeTrialPercentage; % 决定是否为“变化”试次 [cite: 1]
+            isChangeTrial = rand() < changeTrialPercentage; % 决定是否为“变化”试次
 
             if isChangeTrial % “有变化”试次
-                % 选择一个记忆阵列中未出现过的新颜色 [cite: 1]
+                % 选择一个记忆阵列中未出现过的新颜色
                 availableColorsForChangeIndices = setdiff(1:length(colorsRGB), trialColorsIndices);
                 if isempty(availableColorsForChangeIndices)
                     error('没有足够的不重复颜色用于变化试次！');
