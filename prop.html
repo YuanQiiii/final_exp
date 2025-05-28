@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网格色块演示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(6, 50px);
+            grid-template-rows: repeat(6, 50px);
+            width: 300px; /* 6 * 50px */
+            height: 300px; /* 6 * 50px */
+            margin-bottom: 25px;
+            background-color: #ddd; /* Color for the gaps, if using grid-gap approach */
+                                   /* For border approach, this isn't strictly needed but can be a fallback */
+        }
+
+        .grid-cell {
+            width: 50px;
+            height: 50px;
+            box-sizing: border-box;
+            /* Default to transparent borders, reserving space for 1px border */
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px; /* Optional: for displaying cell index */
+            color: white; /* Optional: for cell index text */
+        }
+
+        /* --- Grid Line Styles --- */
+
+        /* No Grid: Cells use their default transparent border from .grid-cell. */
+        .grid-container.no-grid .grid-cell {
+            border-color: transparent;
+        }
+
+        /* 6x6 Grid (each cell bordered) */
+        .grid-container.grid-6x6 .grid-cell {
+            border-top-color: #555;
+            border-left-color: #555;
+        }
+        /* Add right border for the last column cells */
+        .grid-container.grid-6x6 .grid-cell:nth-child(6n) {
+            border-right-color: #555;
+        }
+        /* Add bottom border for the last row cells */
+        .grid-container.grid-6x6 .grid-cell:nth-child(n+31) { /* Cells 31 to 36 */
+            border-bottom-color: #555;
+        }
+
+        /* 1x1 Grid (only outer border) */
+        /* Top edge - cells 0-5 */
+        .grid-container.grid-1x1 .grid-cell:nth-child(-n+6) {
+            border-top-color: #555;
+        }
+        /* Left edge - cells 0,6,12,18,24,30 */
+        .grid-container.grid-1x1 .grid-cell:nth-child(6n+1) {
+            border-left-color: #555;
+        }
+        /* Right edge - cells 5,11,17,23,29,35 */
+        .grid-container.grid-1x1 .grid-cell:nth-child(6n) {
+            border-right-color: #555;
+        }
+        /* Bottom edge - cells 30-35 */
+        .grid-container.grid-1x1 .grid-cell:nth-child(n+31) {
+            border-bottom-color: #555;
+        }
+
+
+        /* 2x2 Super-Grid (lines every 3 cells) */
+        /* Outer Borders for the whole 6x6 area */
+        .grid-container.grid-2x2 .grid-cell:nth-child(-n+6) { border-top-color: #555; }             /* Row 0 (top edge of cells 0-5) */
+        .grid-container.grid-2x2 .grid-cell:nth-child(6n+1) { border-left-color: #555; }           /* Col 0 (left edge of cells 0,6,12,18,24,30) */
+        .grid-container.grid-2x2 .grid-cell:nth-child(n+31) { border-bottom-color: #555; }         /* Row 5 (bottom edge of cells 30-35) */
+        .grid-container.grid-2x2 .grid-cell:nth-child(6n) { border-right-color: #555; }             /* Col 5 (right edge of cells 5,11,17,23,29,35) */
+        
+        /* Inner Lines for 2x2 super-grid */
+        /* Horizontal line: cells in 3rd row (0-indexed row 2, children 13-18) get a bottom border */
+        .grid-container.grid-2x2 .grid-cell:nth-child(n+13):nth-child(-n+18) { border-bottom-color: #555; }
+        /* Vertical line: cells in 3rd col (0-indexed col 2, children 6n+3) get a right border */
+        .grid-container.grid-2x2 .grid-cell:nth-child(6n+3) { border-right-color: #555; }
+
+
+        /* 3x3 Super-Grid (lines every 2 cells) */
+        /* Outer Borders for the whole 6x6 area */
+        .grid-container.grid-3x3 .grid-cell:nth-child(-n+6) { border-top-color: #555; }
+        .grid-container.grid-3x3 .grid-cell:nth-child(6n+1) { border-left-color: #555; }
+        .grid-container.grid-3x3 .grid-cell:nth-child(n+31) { border-bottom-color: #555; }
+        .grid-container.grid-3x3 .grid-cell:nth-child(6n) { border-right-color: #555; }
+
+        /* Inner Lines for 3x3 super-grid */
+        /* Horizontal lines:
+           - Cells in 2nd row (0-indexed row 1, children 7-12) get bottom border.
+           - Cells in 4th row (0-indexed row 3, children 19-24) get bottom border.
+        */
+        .grid-container.grid-3x3 .grid-cell:nth-child(n+7):nth-child(-n+12),
+        .grid-container.grid-3x3 .grid-cell:nth-child(n+19):nth-child(-n+24) {
+            border-bottom-color: #555;
+        }
+        /* Vertical lines:
+           - Cells in 2nd col (0-indexed col 1, children 6n+2) get right border.
+           - Cells in 4th col (0-indexed col 3, children 6n+4) get right border.
+        */
+        .grid-container.grid-3x3 .grid-cell:nth-child(6n+2),
+        .grid-container.grid-3x3 .grid-cell:nth-child(6n+4) {
+            border-right-color: #555;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+            justify-content: center;
+        }
+        .controls button {
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+        }
+        .controls button:hover {
+            background-color: #e9e9e9;
+            border-color: #bbb;
+        }
+        .controls button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        h1 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>网格色块演示</h1>
+
+    <div id="gridContainer" class="grid-container no-grid">
+        </div>
+
+    <div class="controls">
+        <button data-grid-type="no-grid" class="active">无网格</button>
+        <button data-grid-type="grid-6x6">6x6 网格</button>
+        <button data-grid-type="grid-3x3">3x3 网格 (每2格)</button>
+        <button data-grid-type="grid-2x2">2x2 网格 (每3格)</button>
+        <button data-grid-type="grid-1x1">1x1 网格 (每1格)</button>
+    </div>
+
+    <script>
+        const gridContainer = document.getElementById('gridContainer');
+        const totalCells = 36; // 6x6
+
+        // 定义指定的颜色列表
+        const colors = [
+            [210, 70, 70],   // 柔和红
+            [70, 190, 70],   // 柔和绿
+            [70, 70, 210],   // 柔和蓝
+            [200, 200, 70],  // 柔和黄
+            [200, 70, 200],  // 柔和品红
+            [70, 200, 200],  // 柔和青
+            [230, 140, 50],  // 柔和橙
+            [140, 70, 200]   // 柔和紫
+        ];
+
+        // 随机选择6种颜色
+        const selectedColors = [];
+        const availableColors = [...colors]; // 创建颜色列表的副本
+        
+        for (let i = 0; i < 6; i++) {
+            const randomIndex = Math.floor(Math.random() * availableColors.length);
+            selectedColors.push(availableColors[randomIndex]);
+            // 从可用颜色池中移除已选择的颜色（不放回）
+            availableColors.splice(randomIndex, 1);
+        }
+
+        // 随机选择6个位置
+        const selectedPositions = new Set();
+        while (selectedPositions.size < 6) {
+            const position = Math.floor(Math.random() * totalCells);
+            selectedPositions.add(position);
+        }
+
+        // 将选定的位置转换为数组
+        const positionsArray = Array.from(selectedPositions);
+
+        // 创建所有36个单元格
+        for (let i = 0; i < totalCells; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('grid-cell');
+            
+            // 检查当前位置是否是选定的位置之一
+            const colorIndex = positionsArray.indexOf(i);
+            if (colorIndex !== -1) {
+                // 这个位置是选定的位置之一，为其分配颜色
+                const [r, g, b] = selectedColors[colorIndex];
+                cell.style.backgroundColor = `rgb(${r},${g},${b})`;
+            } else {
+                // 其他位置使用透明背景
+                cell.style.backgroundColor = 'transparent';
+            }
+            
+            gridContainer.appendChild(cell);
+        }
+
+        const controlButtons = document.querySelectorAll('.controls button');
+        const gridModeClasses = ['no-grid', 'grid-6x6', 'grid-2x2', 'grid-3x3', 'grid-1x1'];
+
+        controlButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                controlButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                const selectedMode = button.dataset.gridType;
+                gridContainer.classList.remove(...gridModeClasses);
+                gridContainer.classList.add(selectedMode);
+            });
+        });
+    </script>
+
+</body>
+</html>
