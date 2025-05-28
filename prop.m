@@ -69,9 +69,9 @@ try
     % 试次结构
     numGridTypes = length(gridTypes); % 5种网格类型
     numSetSizes = length(setSize); % 3种记忆负荷
-    trialsPerCondition = 20; % 每个条件20个试次
-    numTotalTrials = numGridTypes * numSetSizes * trialsPerCondition; % 总共300个试次
-    numBlocks = 5; % 5个实验区块（每种网格类型一个区块）
+    trialsPerCondition = 12; % 每个条件12个试次
+    numTotalTrials = numGridTypes * numSetSizes * trialsPerCondition; % 总共180个试次
+    numBlocks = 3; % 3个实验区块（每种网格类型一个区块）
     trialsPerBlock = numTotalTrials / numBlocks; % 每个区块60个试次
     changeTrialPercentage = 0.50; % 50% 的试次为"有变化"
 
