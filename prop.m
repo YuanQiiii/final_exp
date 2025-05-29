@@ -36,7 +36,7 @@ try
     instructionFontSize_deg = 0.5; % 指导语字体大小（度）
 
     % 刺激参数
-    setSize = [2, 4, 6]; % 记忆负荷：2, 4, 6个项目
+    setSize = [3, 4]; % 记忆负荷：3, 4个项目
     itemShapes = {'square'}; % 只使用正方形
     itemDiameter_deg = 1.2; % 项目直径/边长 (视角单位)
     itemBorderPx = 1; % 1像素黑色边框
@@ -52,7 +52,7 @@ try
         };
     backgroundColorRGB = [128, 128, 128]; % 中性灰背景
     borderColorRGB = [0,0,0]; % 黑色边框
-    gridLineColorRGB = [100, 100, 100]; % 灰色网格线，不太显眼
+    gridLineColorRGB = [0, 0, 0]; % 黑色网格线
 
     % 网格类型
     gridTypes = {'NoGrid', 'Grid6x6', 'Grid3x3', 'Grid2x2', 'Grid1x1'};
@@ -68,8 +68,8 @@ try
 
     % 试次结构
     numGridTypes = length(gridTypes); % 5种网格类型
-    numSetSizes = length(setSize); % 3种记忆负荷
-    trialsPerCondition = 12; % 每个条件12个试次
+    numSetSizes = length(setSize); % 2种记忆负荷
+    trialsPerCondition = 18; % 每个条件12个试次
     numTotalTrials = numGridTypes * numSetSizes * trialsPerCondition; % 总共180个试次
     numBlocks = 3; % 3个实验区块（每种网格类型一个区块）
     trialsPerBlock = numTotalTrials / numBlocks; % 每个区块60个试次
@@ -136,8 +136,9 @@ try
 
     % --- 指导语与练习 ---
     instructionText_Welcome = ['欢迎您参加本次实验！\n\n'...
-        '在本实验中，您将看到一系列由彩色方块组成的记忆图案。您的任务是尽可能准确地记住屏幕上呈现的所有彩色方块的【颜色及其位置】。\n\n' ...
-        '短暂的记忆时间后，屏幕上会单独呈现一个方块，这个方块来自于刚才记忆图案中的某个位置。\n'...
+        '在本实验中，您将看到一系列由彩色方块组成的记忆图案。您的任务是尽可能准确地记住屏幕上呈现的所有彩色方块的【颜色和位置】。\n\n' ...
+        '短暂的记忆时间后，屏幕上会单独呈现一个方块，这个方块来自于刚才记忆图案中的某个位置，即【位置一定是正确的】。\n'...
+        '但是颜色【不一定正确】。\n\n'...
         '您需要判断这个单独呈现的方块的【颜色】是否与它在原始记忆图案中对应位置的方块颜色【相同】。\n\n' ...
         '如果颜色相同，请按键盘上的【F】键；如果颜色不同，请按键盘上的【J】键。\n' ...
         '请您在保证准确的前提下，尽可能快速地做出反应。\n\n' ...
@@ -159,30 +160,88 @@ try
     % --- 正式实验循环 ---
     trialCounter = 0;
 
-    % 创建平衡的试次列表
-    % 每个网格类型作为一个block
-    blockOrder = randperm(numGridTypes); % 随机化网格类型呈现顺序
+    % 创建包含所有条件组合的试次列表
+    allConditions = [];
+    changeTrials = []; % 0=无变化，1=有变化
 
-    for blockIdx = 1:numBlocks
-        currentGridType = gridTypes{blockOrder(blockIdx)};
-
-        % 创建当前block内的试次列表（包含不同的setSize）
-        blockConditions = [];
+    for gridIdx = 1:numGridTypes
         for ssIdx = 1:numSetSizes
+            currentGridType = gridTypes{gridIdx};
             currentSetSize = setSize(ssIdx);
-            blockConditions = [blockConditions; repmat({currentGridType, currentSetSize}, trialsPerCondition, 1)];
+
+            % 确保每个条件组合有相同数量的变化/无变化试次
+            halfTrials = trialsPerCondition / 2;
+            if mod(trialsPerCondition, 2) ~= 0
+                warning('trialsPerCondition应为偶数以确保变化/无变化试次平衡');
+                halfTrials = floor(halfTrials);
+            end
+
+            % 为每个条件创建平衡的变化/无变化试次
+            condTrials = repmat({currentGridType, currentSetSize}, trialsPerCondition, 1);
+            condChanges = [zeros(halfTrials, 1); ones(trialsPerCondition-halfTrials, 1)];
+
+            allConditions = [allConditions; condTrials];
+            changeTrials = [changeTrials; condChanges];
+        end
+    end
+
+    % 创建平衡的区块分配
+    trialsPerCondPerBlock = trialsPerCondition / numBlocks;
+    if mod(trialsPerCondition, numBlocks) ~= 0
+        warning('trialsPerCondition应能被numBlocks整除以确保区块间平衡');
+    end
+
+    % 在区块内随机化，同时保持条件平衡
+    blockConditions = cell(numBlocks, 1);
+    for blockIdx = 1:numBlocks
+        blockConds = [];
+        blockChanges = [];
+
+        for gridIdx = 1:numGridTypes
+            for ssIdx = 1:numSetSizes
+                currentGridType = gridTypes{gridIdx};
+                currentSetSize = setSize(ssIdx);
+
+                % 为当前区块找出对应的条件试次
+                condIndices = find(strcmp({allConditions{:,1}}, currentGridType) & [allConditions{:,2}] == currentSetSize);
+
+                % 分别获取变化和无变化试次
+                changeIndices = condIndices(changeTrials(condIndices) == 1);
+                noChangeIndices = condIndices(changeTrials(condIndices) == 0);
+
+                % 随机选择此区块所需的试次数
+                blockChangeIdx = changeIndices(randperm(length(changeIndices), trialsPerCondPerBlock/2));
+                blockNoChangeIdx = noChangeIndices(randperm(length(noChangeIndices), trialsPerCondPerBlock/2));
+
+                % 添加到区块试次中
+                selectedIndices = [blockChangeIdx; blockNoChangeIdx];
+                blockConds = [blockConds; allConditions(selectedIndices,:)];
+                blockChanges = [blockChanges; changeTrials(selectedIndices)];
+            end
         end
 
-        % 随机化当前block内的试次顺序
-        randomOrder = randperm(size(blockConditions, 1));
-        blockConditions = blockConditions(randomOrder, :);
+        % 随机化区块内试次顺序
+        blockRandomOrder = randperm(size(blockConds, 1));
+        % 确保 blockChanges 是列向量并正确转换为 cell 数组
+        blockChangesCell = num2cell(blockChanges(blockRandomOrder));
+        % 检查并调整维度
+        if size(blockConds(blockRandomOrder,:), 1) ~= size(blockChangesCell, 1)
+            blockChangesCell = reshape(blockChangesCell, [], 1);
+        end
+        blockConditions{blockIdx} = [blockConds(blockRandomOrder,:), blockChangesCell];
+    end
+
+    % 开始正式实验
+    for blockIdx = 1:numBlocks
+        currentBlockConditions = blockConditions{blockIdx};
+        numTrialsInBlock = size(currentBlockConditions, 1);
 
         ShowInstructions(window, ['第 ' num2str(blockIdx) ' 部分，共 ' num2str(numBlocks) ' 部分。按任意键开始。'], instructionFontSize_px);
 
-        for trialInBlock = 1:size(blockConditions, 1)
+        for trialInBlock = 1:numTrialsInBlock
             trialCounter = trialCounter + 1;
-            currentGridType = blockConditions{trialInBlock, 1};
-            currentSetSize = blockConditions{trialInBlock, 2};
+            currentGridType = currentBlockConditions{trialInBlock, 1};
+            currentSetSize = currentBlockConditions{trialInBlock, 2};
 
             % 1. 试次间隔 (ITI)
             Screen('FillRect', window, backgroundColorRGB);
@@ -641,6 +700,8 @@ gridWidth = gridSize * cell_px;
 gridHeight = gridSize * cell_px;
 gridLeft = xCenter - (gridWidth / 2);
 gridTop = yCenter - (gridHeight / 2);
+gridRight = gridLeft + gridWidth;
+gridBottom = gridTop + gridHeight;
 
 % 创建网格中心点坐标列表
 gridCenters = zeros(gridSize * gridSize, 2);
@@ -740,13 +801,13 @@ switch gridType
         % 绘制水平网格线
         for row = 0:gridSize
             yPos = gridTop + (row * cell_px);
-            Screen('DrawLine', window, gridLineColor, gridLeft, yPos, gridRight, yPos, 1);
+            Screen('DrawLine', window, gridLineColor, gridLeft, yPos, gridRight, yPos, 3); % 从1改为3
         end
 
         % 绘制垂直网格线
         for col = 0:gridSize
             xPos = gridLeft + (col * cell_px);
-            Screen('DrawLine', window, gridLineColor, xPos, gridTop, xPos, gridBottom, 1);
+            Screen('DrawLine', window, gridLineColor, xPos, gridTop, xPos, gridBottom, 3); % 从1改为3
         end
 
     case 'Grid3x3'
@@ -754,13 +815,13 @@ switch gridType
         % 绘制水平超级网格线
         for row = 0:2:gridSize
             yPos = gridTop + (row * cell_px);
-            Screen('DrawLine', window, gridLineColor, gridLeft, yPos, gridRight, yPos, 2);
+            Screen('DrawLine', window, gridLineColor, gridLeft, yPos, gridRight, yPos, 4); % 从2改为4
         end
 
         % 绘制垂直超级网格线
         for col = 0:2:gridSize
             xPos = gridLeft + (col * cell_px);
-            Screen('DrawLine', window, gridLineColor, xPos, gridTop, xPos, gridBottom, 2);
+            Screen('DrawLine', window, gridLineColor, xPos, gridTop, xPos, gridBottom, 4); % 从2改为4
         end
 
     case 'Grid2x2'
@@ -768,18 +829,18 @@ switch gridType
         % 绘制水平超级网格线
         for row = 0:3:gridSize
             yPos = gridTop + (row * cell_px);
-            Screen('DrawLine', window, gridLineColor, gridLeft, yPos, gridRight, yPos, 2);
+            Screen('DrawLine', window, gridLineColor, gridLeft, yPos, gridRight, yPos, 4); % 从2改为4
         end
 
         % 绘制垂直超级网格线
         for col = 0:3:gridSize
             xPos = gridLeft + (col * cell_px);
-            Screen('DrawLine', window, gridLineColor, xPos, gridTop, xPos, gridBottom, 2);
+            Screen('DrawLine', window, gridLineColor, xPos, gridTop, xPos, gridBottom, 4); % 从2改为4
         end
 
     case 'Grid1x1'
         % 只绘制整体边框
-        Screen('FrameRect', window, gridLineColor, [gridLeft, gridTop, gridRight, gridBottom], 2);
+        Screen('FrameRect', window, gridLineColor, [gridLeft, gridTop, gridRight, gridBottom], 4); % 从2改为4
 
     otherwise
         warning('未知的网格类型: %s', gridType);
