@@ -52,7 +52,7 @@ try
         };
     backgroundColorRGB = [128, 128, 128]; % 中性灰背景
     borderColorRGB = [0,0,0]; % 黑色边框
-    gridLineColorRGB = [0, 0, 0]; % 黑色网格线
+    gridLineColorRGB = [100, 100, 100];  % 灰色网格线，不太显眼
 
     % 网格类型
     gridTypes = {'NoGrid', 'Grid6x6', 'Grid3x3', 'Grid2x2', 'Grid1x1'};
